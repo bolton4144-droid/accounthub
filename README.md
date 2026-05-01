@@ -40,9 +40,17 @@ This repo now contains a serious multi-tenant backend foundation for:
 
 ```text
 GET  /health
+GET  /api/platform/foundation
+GET  /api/platform/security-posture
+GET  /api/platform/database-contract
+GET  /api/platform/roadmap
+GET  /api/tenant-boundary/validate
+GET  /api/audit-events
+POST /api/audit-events
 GET  /api/bookkeeping/chart-template/uk-limited-company
 POST /api/ledger/journals/validate
 POST /api/ledger/journals/manual/prepare
+POST /api/ledger/journals/post
 POST /api/ledger/equation/verify
 POST /api/subledgers/sales-invoices/posting-preview
 POST /api/subledgers/purchase-bills/posting-preview
@@ -59,6 +67,7 @@ GET  /api/ocr/:provider/blueprint
 POST /api/ocr/receipts/parse
 GET  /api/mtd/vat/readiness
 POST /api/mtd/vat/returns/validate
+GET  /api/companies-house/readiness
 GET  /api/companies-house/search?q=...
 GET  /api/companies-house/company/:companyNumber
 POST /api/employees/starter-checklist
@@ -67,6 +76,20 @@ POST /api/employees/p60
 POST /api/rti/fps/validate
 POST /api/rti/eps/validate
 ```
+
+## Phase 1 Production Foundation
+
+Phase 1 adds a production contract around the current Railway app without breaking the live UI:
+
+- Tenant context via `x-tenant-id`, defaulting to `practice_demo` for the demo service.
+- Security posture and database contract endpoints.
+- Audit event capture for core write actions.
+- Companies House readiness endpoints gated until `COMPANIES_HOUSE_API_KEY` is configured.
+- Journal posting boundary that blocks unbalanced entries.
+- PostgreSQL foundation schema in `backend/database/phase1_foundation.sql`.
+- Architecture notes in `docs/phase-1-foundation.md`.
+
+The live service still uses in-memory demo data. The next engineering milestone is to replace those arrays with PostgreSQL repositories backed by `DATABASE_URL`.
 
 ## Completion Roadmap
 
