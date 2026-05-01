@@ -49,8 +49,13 @@ model BusinessEntity {
   employees               Employee[]
   payrollRuns             PayrollRun[]
   employerPaymentRecords  EmployerPaymentRecord[]
+  salesInvoices           SalesInvoice[]
+  purchaseBills           PurchaseBill[]
+  bankAccounts            BankAccount[]
   bookkeepingTransactions BookkeepingTransaction[]
+  receiptDocuments        ReceiptDocument[]
   vatPeriods              VatPeriod[]
+  mtdVatSubmissions       MtdVatSubmission[]
   reportSnapshots         ReportSnapshot[]
   statutoryDocuments      StatutoryDocument[]
   auditEvents             AuditEvent[]
@@ -100,18 +105,18 @@ model Employee {
 }
 
 model EmployeeStarterForm {
-  id                       String   @id @default(uuid())
-  employeeId               String
-  employee                 Employee @relation(fields: [employeeId], references: [id])
-  declaration              String
-  hasP45                   Boolean  @default(false)
-  previousEmployerPay      Decimal  @default(0)
-  previousEmployerTax      Decimal  @default(0)
-  studentLoanPlan          String?
-  postgraduateLoan         Boolean  @default(false)
-  rightToWorkCheckedAt     DateTime?
-  submittedAt              DateTime?
-  createdAt                DateTime @default(now())
+  id                   String   @id @default(uuid())
+  employeeId           String
+  employee             Employee @relation(fields: [employeeId], references: [id])
+  declaration          String
+  hasP45               Boolean  @default(false)
+  previousEmployerPay  Decimal  @default(0)
+  previousEmployerTax  Decimal  @default(0)
+  studentLoanPlan      String?
+  postgraduateLoan     Boolean  @default(false)
+  rightToWorkCheckedAt DateTime?
+  submittedAt          DateTime?
+  createdAt            DateTime @default(now())
 }
 
 model EmployeeLeaverForm {
@@ -184,19 +189,41 @@ model EmployerPaymentRecord {
   createdAt             DateTime       @default(now())
 }
 
-model StatutoryDocument {
-  id            String          @id @default(uuid())
-  entityId      String
-  entity        BusinessEntity  @relation(fields: [entityId], references: [id])
-  employeeId    String?
-  employee      Employee?       @relation(fields: [employeeId], references: [id])
-  documentType  String
-  taxYear       String?
-  documentData  Json
-  pdfObjectKey  String?
-  status        String          @default("draft")
-  issuedAt      DateTime?
-  createdAt     DateTime        @default(now())
+model SalesInvoice {
+  id             String         @id @default(uuid())
+  entityId       String
+  entity         BusinessEntity @relation(fields: [entityId], references: [id])
+  invoiceNumber  String
+  customerName   String
+  invoiceDate    DateTime
+  dueDate        DateTime?
+  netAmount      Decimal
+  vatAmount      Decimal        @default(0)
+  grossAmount    Decimal
+  status         String         @default("draft")
+  journalEntryId String?
+  createdAt      DateTime       @default(now())
+
+  @@unique([entityId, invoiceNumber])
+}
+
+model PurchaseBill {
+  id             String         @id @default(uuid())
+  entityId       String
+  entity         BusinessEntity @relation(fields: [entityId], references: [id])
+  billNumber     String
+  supplierName   String
+  billDate       DateTime
+  dueDate        DateTime?
+  netAmount      Decimal
+  vatAmount      Decimal        @default(0)
+  grossAmount    Decimal
+  status         String         @default("draft")
+  receiptId      String?
+  journalEntryId String?
+  createdAt      DateTime       @default(now())
+
+  @@unique([entityId, billNumber])
 }
 
 model ChartAccount {
@@ -207,6 +234,7 @@ model ChartAccount {
   name          String
   accountType   String
   reportSection String?
+  category      String?
   systemAccount Boolean         @default(false)
   active        Boolean         @default(true)
   lines         JournalLine[]
@@ -220,8 +248,10 @@ model JournalEntry {
   entity         BusinessEntity  @relation(fields: [entityId], references: [id])
   sourceType     String
   sourceId       String?
+  reference      String?
   description    String
   accountingDate DateTime
+  createdBy      String?
   postedAt       DateTime?
   lockedAt       DateTime?
   lines          JournalLine[]
@@ -240,13 +270,54 @@ model JournalLine {
   narrative      String?
 }
 
+model BankAccount {
+  id                String              @id @default(uuid())
+  entityId          String
+  entity            BusinessEntity      @relation(fields: [entityId], references: [id])
+  provider          String
+  providerAccountId String?
+  name              String
+  currency          String              @default("GBP")
+  tokenEncrypted    String?
+  status            String              @default("active")
+  statementLines    BankStatementLine[]
+  createdAt         DateTime            @default(now())
+}
+
+model BankStatementLine {
+  id               String       @id @default(uuid())
+  bankAccountId    String
+  bankAccount      BankAccount  @relation(fields: [bankAccountId], references: [id])
+  providerLineId   String?
+  transactionDate  DateTime
+  description      String
+  counterparty     String?
+  amount           Decimal
+  direction        String
+  reconciliationId String?
+  importedAt       DateTime     @default(now())
+
+  @@unique([bankAccountId, providerLineId])
+}
+
+model BankReconciliation {
+  id                  String   @id @default(uuid())
+  entityId            String
+  bankStatementLineId String
+  targetType          String
+  targetId            String
+  confidence          Decimal  @default(0)
+  status              String   @default("suggested")
+  createdAt           DateTime @default(now())
+}
+
 model BookkeepingTransaction {
   id              String         @id @default(uuid())
   entityId        String
   entity          BusinessEntity @relation(fields: [entityId], references: [id])
   transactionDate DateTime
   description     String
-  counterparty     String?
+  counterparty    String?
   amount          Decimal
   direction       String
   bankAccountRef  String?
@@ -255,6 +326,21 @@ model BookkeepingTransaction {
   matchStatus     String         @default("unmatched")
   journalEntryId  String?
   createdAt       DateTime       @default(now())
+}
+
+model ReceiptDocument {
+  id             String         @id @default(uuid())
+  entityId       String
+  entity         BusinessEntity @relation(fields: [entityId], references: [id])
+  provider       String
+  fileName       String
+  objectKey      String?
+  extractedText  String?
+  extractedData  Json?
+  confidence     Decimal       @default(0)
+  status         String        @default("queued")
+  purchaseBillId String?
+  createdAt      DateTime      @default(now())
 }
 
 model VatPeriod {
@@ -269,6 +355,20 @@ model VatPeriod {
   submittedAt DateTime?
 }
 
+model MtdVatSubmission {
+  id                String         @id @default(uuid())
+  entityId          String
+  entity            BusinessEntity @relation(fields: [entityId], references: [id])
+  vatPeriodId       String?
+  obligationPeriod  String
+  boxValues         Json
+  hmrcCorrelationId String?
+  status            String         @default("draft")
+  submittedAt       DateTime?
+  response          Json?
+  createdAt         DateTime       @default(now())
+}
+
 model RtiSubmission {
   id             String     @id @default(uuid())
   payrollRunId   String
@@ -278,6 +378,21 @@ model RtiSubmission {
   payload        Json
   response       Json?
   submittedAt    DateTime?
+}
+
+model StatutoryDocument {
+  id           String         @id @default(uuid())
+  entityId     String
+  entity       BusinessEntity @relation(fields: [entityId], references: [id])
+  employeeId   String?
+  employee     Employee?      @relation(fields: [employeeId], references: [id])
+  documentType String
+  taxYear      String?
+  documentData Json
+  pdfObjectKey String?
+  status       String         @default("draft")
+  issuedAt     DateTime?
+  createdAt    DateTime       @default(now())
 }
 
 model ReportSnapshot {
