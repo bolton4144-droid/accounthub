@@ -123,4 +123,5 @@ app.get('/api/mtd/vat/readiness', (_req, res) => res.json({ status: 'adapter_rea
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`Accounthub API running on port ${port}`));
+const host = '0.0.0.0';
+app.listen(port, host, () => console.log(`Accounthub API running on ${host}:${port}`));
