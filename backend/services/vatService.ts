@@ -139,7 +139,12 @@ export class VATService {
     end: Date;
     dueDate: Date;
   }> {
-    const periods = [];
+    const periods: Array<{
+      periodKey: string;
+      start: Date;
+      end: Date;
+      dueDate: Date;
+    }> = [];
     const quarters = [
       { start: new Date(year, 0, 1), end: new Date(year, 2, 31) },  // Q1
       { start: new Date(year, 3, 1), end: new Date(year, 5, 30) },  // Q2
