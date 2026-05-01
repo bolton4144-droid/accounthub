@@ -1,16 +1,302 @@
-generator client { provider = "prisma-client-js" }
+generator client {
+  provider = "prisma-client-js"
+}
 
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-model Practice { id String @id @default(uuid()) name String brandColor String @default("#579a76") users User[] entities BusinessEntity[] createdAt DateTime @default(now()) }
-model User { id String @id @default(uuid()) practiceId String practice Practice @relation(fields:[practiceId], references:[id]) email String @unique fullName String role String mfaEnabled Boolean @default(false) createdAt DateTime @default(now()) }
-model BusinessEntity { id String @id @default(uuid()) practiceId String practice Practice @relation(fields:[practiceId], references:[id]) legalName String companyNumber String? companyStatus String? companyHouseSyncedAt DateTime? utrEncrypted String? vatNumberEncrypted String? payeReferenceEncrypted String? accountsOfficeEncrypted String? entityType String vatScheme String @default("standard") financialYearStart DateTime chartAccounts ChartAccount[] journalEntries JournalEntry[] employees Employee[] vatPeriods VatPeriod[] auditEvents AuditEvent[] createdAt DateTime @default(now()) }
-model ChartAccount { id String @id @default(uuid()) entityId String entity BusinessEntity @relation(fields:[entityId], references:[id]) code String name String accountType String systemAccount Boolean @default(false) active Boolean @default(true) lines JournalLine[] @@unique([entityId, code]) }
-model JournalEntry { id String @id @default(uuid()) entityId String entity BusinessEntity @relation(fields:[entityId], references:[id]) sourceType String sourceId String? description String accountingDate DateTime postedAt DateTime? lockedAt DateTime? lines JournalLine[] createdAt DateTime @default(now()) }
-model JournalLine { id String @id @default(uuid()) journalEntryId String journalEntry JournalEntry @relation(fields:[journalEntryId], references:[id]) accountId String account ChartAccount @relation(fields:[accountId], references:[id]) debit Decimal @default(0) credit Decimal @default(0) taxCode String? }
-model Employee { id String @id @default(uuid()) entityId String entity BusinessEntity @relation(fields:[entityId], references:[id]) payrollId String firstNameEncrypted String lastNameEncrypted String niNumberEncrypted String? taxCode String niCategory String pensionStatus String status String @default("active") payslips Payslip[] @@unique([entityId, payrollId]) }
-model PayrollRun { id String @id @default(uuid()) entityId String taxYear String taxPeriod Int paymentDate DateTime status String @default("draft") grossPayTotal Decimal @default(0) payeTotal Decimal @default(0) employeeNiTotal Decimal @default(0) employerNiTotal Decimal @default(0) pensionTotal Decimal @default(0) netPayTotal Decimal @default(0) payslips Payslip[] rtiSubmissions RtiSubmission[] }
-model Payslip { id String @id @default(uuid()) payrollRunId String payrollRun PayrollRun @relation(fields:[payrollRunId], references:[id]) employeeId String employee Employee @relation(fields:[employeeId], references:[id]) grossPay Decimal payeTax Decimal employeeNi Decimal employerNi Decimal pension Decimal netPay Decimal ytdValues Json pdfObjectKey String? }
-model VatPeriod { id String @id @default(uuid()) entityId String entity BusinessEntity @relation(fields:[entityId], references:[id]) scheme String periodStart DateTime periodEnd DateTime status String @default("open") boxValues Json? submittedAt DateTime? }
-model RtiSubmission { id String @id @default(uuid()) payrollRunId String payrollRun PayrollRun @relation(fields:[payrollRunId], references:[id]) submissionType String status String @default("draft") payload Json response Json? submittedAt DateTime? }
-model AuditEvent { id String @id @default(uuid()) entityId String? entity BusinessEntity? @relation(fields:[entityId], references:[id]) actorId String? action String metadata Json createdAt DateTime @default(now()) }
+model Practice {
+  id         String           @id @default(uuid())
+  name       String
+  brandColor String           @default("#579a76")
+  users      User[]
+  entities   BusinessEntity[]
+  createdAt  DateTime         @default(now())
+}
+
+model User {
+  id         String   @id @default(uuid())
+  practiceId String
+  practice   Practice @relation(fields: [practiceId], references: [id])
+  email      String   @unique
+  fullName   String
+  role       String
+  mfaEnabled Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model BusinessEntity {
+  id                      String                  @id @default(uuid())
+  practiceId              String
+  practice                Practice                @relation(fields: [practiceId], references: [id])
+  legalName               String
+  tradingName             String?
+  companyNumber           String?
+  companyStatus           String?
+  companyHouseSyncedAt    DateTime?
+  utrEncrypted            String?
+  vatNumberEncrypted      String?
+  payeReferenceEncrypted  String?
+  accountsOfficeEncrypted String?
+  entityType              String
+  vatScheme               String                  @default("standard")
+  financialYearStart      DateTime
+  payrollSettings         EmployerPayrollSetting?
+  chartAccounts           ChartAccount[]
+  journalEntries          JournalEntry[]
+  employees               Employee[]
+  payrollRuns             PayrollRun[]
+  employerPaymentRecords  EmployerPaymentRecord[]
+  bookkeepingTransactions BookkeepingTransaction[]
+  vatPeriods              VatPeriod[]
+  reportSnapshots         ReportSnapshot[]
+  statutoryDocuments      StatutoryDocument[]
+  auditEvents             AuditEvent[]
+  createdAt               DateTime                @default(now())
+}
+
+model EmployerPayrollSetting {
+  id                         String         @id @default(uuid())
+  entityId                   String         @unique
+  entity                     BusinessEntity @relation(fields: [entityId], references: [id])
+  payeReferenceEncrypted     String?
+  accountsOfficeRefEncrypted String?
+  payFrequency               String         @default("monthly")
+  rtiEnabled                 Boolean        @default(false)
+  pensionProvider            String?
+  pensionEmployerRef         String?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+}
+
+model Employee {
+  id                   String                 @id @default(uuid())
+  entityId             String
+  entity               BusinessEntity         @relation(fields: [entityId], references: [id])
+  payrollId            String
+  firstNameEncrypted   String
+  lastNameEncrypted    String
+  dateOfBirthEncrypted String?
+  addressEncrypted     String?
+  emailEncrypted       String?
+  bankDetailsEncrypted String?
+  niNumberEncrypted    String?
+  taxCode              String
+  niCategory           String
+  studentLoanPlan      String?
+  postgraduateLoan     Boolean                @default(false)
+  pensionStatus        String
+  startDate            DateTime?
+  leaveDate            DateTime?
+  status               String                 @default("active")
+  starterForms         EmployeeStarterForm[]
+  leaverForms          EmployeeLeaverForm[]
+  payslips             Payslip[]
+  statutoryDocuments   StatutoryDocument[]
+
+  @@unique([entityId, payrollId])
+}
+
+model EmployeeStarterForm {
+  id                       String   @id @default(uuid())
+  employeeId               String
+  employee                 Employee @relation(fields: [employeeId], references: [id])
+  declaration              String
+  hasP45                   Boolean  @default(false)
+  previousEmployerPay      Decimal  @default(0)
+  previousEmployerTax      Decimal  @default(0)
+  studentLoanPlan          String?
+  postgraduateLoan         Boolean  @default(false)
+  rightToWorkCheckedAt     DateTime?
+  submittedAt              DateTime?
+  createdAt                DateTime @default(now())
+}
+
+model EmployeeLeaverForm {
+  id             String   @id @default(uuid())
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  leavingDate    DateTime
+  finalPayToDate Decimal
+  finalTaxToDate Decimal
+  taxCode        String
+  documentId     String?
+  submittedAt    DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model PayrollRun {
+  id              String                  @id @default(uuid())
+  entityId        String
+  entity          BusinessEntity          @relation(fields: [entityId], references: [id])
+  taxYear         String
+  taxPeriod       Int
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  paymentDate     DateTime
+  status          String                  @default("draft")
+  grossPayTotal   Decimal                 @default(0)
+  payeTotal       Decimal                 @default(0)
+  employeeNiTotal Decimal                 @default(0)
+  employerNiTotal Decimal                 @default(0)
+  pensionTotal    Decimal                 @default(0)
+  netPayTotal     Decimal                 @default(0)
+  payslips        Payslip[]
+  rtiSubmissions  RtiSubmission[]
+  paymentRecord   EmployerPaymentRecord?
+}
+
+model Payslip {
+  id           String     @id @default(uuid())
+  payrollRunId String
+  payrollRun   PayrollRun @relation(fields: [payrollRunId], references: [id])
+  employeeId   String
+  employee     Employee   @relation(fields: [employeeId], references: [id])
+  grossPay     Decimal
+  payeTax      Decimal
+  employeeNi   Decimal
+  employerNi   Decimal
+  pension      Decimal
+  netPay       Decimal
+  ytdValues    Json
+  pdfObjectKey String?
+}
+
+model EmployerPaymentRecord {
+  id                    String         @id @default(uuid())
+  entityId              String
+  entity                BusinessEntity @relation(fields: [entityId], references: [id])
+  payrollRunId          String?        @unique
+  payrollRun            PayrollRun?    @relation(fields: [payrollRunId], references: [id])
+  taxYear               String
+  taxMonth              Int
+  payeDue               Decimal        @default(0)
+  employeeNiDue         Decimal        @default(0)
+  employerNiDue         Decimal        @default(0)
+  studentLoanDue        Decimal        @default(0)
+  pensionDue            Decimal        @default(0)
+  statutoryRecoveries   Decimal        @default(0)
+  apprenticeshipLevyDue Decimal        @default(0)
+  totalDue              Decimal        @default(0)
+  status                String         @default("draft")
+  createdAt             DateTime       @default(now())
+}
+
+model StatutoryDocument {
+  id            String          @id @default(uuid())
+  entityId      String
+  entity        BusinessEntity  @relation(fields: [entityId], references: [id])
+  employeeId    String?
+  employee      Employee?       @relation(fields: [employeeId], references: [id])
+  documentType  String
+  taxYear       String?
+  documentData  Json
+  pdfObjectKey  String?
+  status        String          @default("draft")
+  issuedAt      DateTime?
+  createdAt     DateTime        @default(now())
+}
+
+model ChartAccount {
+  id            String          @id @default(uuid())
+  entityId      String
+  entity        BusinessEntity  @relation(fields: [entityId], references: [id])
+  code          String
+  name          String
+  accountType   String
+  reportSection String?
+  systemAccount Boolean         @default(false)
+  active        Boolean         @default(true)
+  lines         JournalLine[]
+
+  @@unique([entityId, code])
+}
+
+model JournalEntry {
+  id             String          @id @default(uuid())
+  entityId       String
+  entity         BusinessEntity  @relation(fields: [entityId], references: [id])
+  sourceType     String
+  sourceId       String?
+  description    String
+  accountingDate DateTime
+  postedAt       DateTime?
+  lockedAt       DateTime?
+  lines          JournalLine[]
+  createdAt      DateTime        @default(now())
+}
+
+model JournalLine {
+  id             String       @id @default(uuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
+  accountId      String
+  account        ChartAccount @relation(fields: [accountId], references: [id])
+  debit          Decimal      @default(0)
+  credit         Decimal      @default(0)
+  taxCode        String?
+  narrative      String?
+}
+
+model BookkeepingTransaction {
+  id              String         @id @default(uuid())
+  entityId        String
+  entity          BusinessEntity @relation(fields: [entityId], references: [id])
+  transactionDate DateTime
+  description     String
+  counterparty     String?
+  amount          Decimal
+  direction       String
+  bankAccountRef  String?
+  categoryCode    String?
+  vatCode         String?
+  matchStatus     String         @default("unmatched")
+  journalEntryId  String?
+  createdAt       DateTime       @default(now())
+}
+
+model VatPeriod {
+  id          String         @id @default(uuid())
+  entityId    String
+  entity      BusinessEntity @relation(fields: [entityId], references: [id])
+  scheme      String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      String         @default("open")
+  boxValues   Json?
+  submittedAt DateTime?
+}
+
+model RtiSubmission {
+  id             String     @id @default(uuid())
+  payrollRunId   String
+  payrollRun     PayrollRun @relation(fields: [payrollRunId], references: [id])
+  submissionType String
+  status         String     @default("draft")
+  payload        Json
+  response       Json?
+  submittedAt    DateTime?
+}
+
+model ReportSnapshot {
+  id          String         @id @default(uuid())
+  entityId    String
+  entity      BusinessEntity @relation(fields: [entityId], references: [id])
+  reportType  String
+  periodStart DateTime
+  periodEnd   DateTime
+  payload     Json
+  createdAt   DateTime       @default(now())
+}
+
+model AuditEvent {
+  id        String          @id @default(uuid())
+  entityId  String?
+  entity    BusinessEntity? @relation(fields: [entityId], references: [id])
+  actorId   String?
+  action    String
+  metadata  Json
+  createdAt DateTime        @default(now())
+}
