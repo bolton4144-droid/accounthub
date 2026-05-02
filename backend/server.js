@@ -14,7 +14,7 @@ const round = (v) => Math.round(Number(v || 0) * 100) / 100;
 const id = (p) => `${p}_${crypto.randomUUID().slice(0, 8)}`;
 
 const foundation = {
-  phase: 'Phase 2 - persistence foundation',
+  phase: 'Phase 3 - payroll depth foundation',
   brand: { primary: '#579a76', uiDirection: 'clean fintech SaaS' },
   runtime: {
     deployedService: 'Railway backend/server.js',
