@@ -1,4 +1,5 @@
 const express = require('express');
+const { bookkeepingVatFeed } = require('./bookkeepingProduction');
 
 const router = express.Router();
 const round = (v) => Math.round(Number(v || 0) * 100) / 100;
@@ -61,7 +62,7 @@ function adjustment(box) {
 }
 
 function baseRows(scheme = vatEntity.scheme) {
-  return bookkeepingTransactions.filter((tx) => tx.includeInVat && inPeriod(tx, scheme));
+  return [...bookkeepingTransactions, ...bookkeepingVatFeed()].filter((tx) => tx.includeInVat && inPeriod(tx, scheme));
 }
 
 function standardReturn(scheme = 'standard') {
