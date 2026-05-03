@@ -140,7 +140,10 @@ router.get('/api/command-centre/clients', (req, res) => {
 });
 router.get('/api/command-centre/summary', (_req, res) => res.json(summary(clients)));
 router.get('/api/command-centre/deadlines', (req, res) => {
-  const rows = filteredClients(req.query).flatMap((c) => Object.entries(c.deadlines).map(([type, d]) => ({ clientId:c.id, client:c.name, companyNumber:c.companyNumber, type, ...d })));
+  const selected = String(req.query.deadlineType || 'all');
+  const rows = filteredClients(req.query).flatMap((c) => Object.entries(c.deadlines)
+    .filter(([type]) => selected === 'all' || selected === 'next' || selected === type)
+    .map(([type, d]) => ({ clientId:c.id, client:c.name, companyNumber:c.companyNumber, type, ...d })));
   res.json({ rows, count:rows.length });
 });
 
