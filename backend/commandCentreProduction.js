@@ -70,6 +70,41 @@ function buildClients(count = 1000) {
 
 const clients = buildClients(1000);
 
+function addCommandCentreClient(input = {}) {
+  const today = baseDate();
+  const companyNumber = input.companyNumber || `MAN${String(clients.length + 1).padStart(5, '0')}`;
+  const name = input.name || input.companyName || `New Client ${clients.length + 1}`;
+  const manager = input.manager || managers[0];
+  const bookkeeper = input.bookkeeper || bookkeepers[0];
+  const deadlines = {
+    accounts:deadlineObject('Companies House accounts', input.accountsDue || iso(addDays(today, 90)), manager, 1),
+    confirmation:deadlineObject('Confirmation statement', input.confirmationDue || iso(addDays(today, 120)), manager, 2),
+    vat:deadlineObject('VAT return', input.vatDue || iso(addDays(today, 35)), bookkeeper, 3),
+    payroll:deadlineObject('Payroll filing', input.payrollDue || iso(addDays(today, 7)), 'Payroll bureau', 4),
+    bookkeeping:deadlineObject('Bookkeeping', input.bookkeepingDue || iso(addDays(today, 14)), bookkeeper, 5)
+  };
+  const next = Object.entries(deadlines).map(([type, d]) => ({ type, ...d })).sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+  const client = {
+    id:input.id || `client_${String(clients.length + 1).padStart(4, '0')}`,
+    name,
+    companyNumber,
+    sector:input.entityType === 'sole_trader' ? 'Sole trader' : 'Limited company',
+    town:input.town || 'Unassigned',
+    manager,
+    bookkeeper,
+    yearEnd:input.yearEnd || '',
+    vatScheme:input.vatScheme || 'standard',
+    payrollFrequency:input.payrollFrequency || 'monthly',
+    bookkeepingFrequency:input.bookkeepingFrequency || 'monthly',
+    openTasks:Object.values(deadlines).filter((d) => d.status !== 'filed').length,
+    nextDeadline:next,
+    deadlines,
+    onboarding:{ entityType:input.entityType || 'limited_company', personalAddress:input.personalAddress || '', companiesHouseAuthCodeStatus:input.companiesHouseAuthCode ? 'captured_sensitive_demo_memory' : 'not_captured', amlComplete:!!input.amlComplete, hmrcAgentRegistration:!!input.hmrcAgentRegistration }
+  };
+  clients.unshift(client);
+  return client;
+}
+
 function filteredClients(query = {}) {
   const search = String(query.search || '').toLowerCase();
   const risk = String(query.risk || 'all');
@@ -147,4 +182,4 @@ router.get('/api/command-centre/deadlines', (req, res) => {
   res.json({ rows, count:rows.length });
 });
 
-module.exports = { commandCentreProductionRouter: router };
+module.exports = { commandCentreProductionRouter: router, addCommandCentreClient };
