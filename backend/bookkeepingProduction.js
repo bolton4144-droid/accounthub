@@ -100,6 +100,14 @@ function vatFeed() {
   return [...saleRows, ...billRows];
 }
 
+function digitalRecordsForTax() {
+  const income = salesInvoices.map((x) => ({ id:x.id, type:'self_employment_income', date:x.date, description:x.number, customer:x.customer, amount:x.net, source:'digital_bookkeeping_sales_invoice' }));
+  const expenses = purchaseBills.map((x) => ({ id:x.id, type:x.accountCode === '3000' ? 'capital_allowance_candidate' : 'self_employment_expense', date:x.date, description:x.number, supplier:x.supplier, amount:x.net, accountCode:x.accountCode, source:'digital_bookkeeping_purchase_bill' }));
+  const turnover = round(income.reduce((s, r) => s + Number(r.amount || 0), 0));
+  const allowableExpenses = round(expenses.filter((r) => r.type === 'self_employment_expense').reduce((s, r) => s + Number(r.amount || 0), 0));
+  return { period:'2026-04-06 to 2027-04-05', digitalRecordStatus:'software_records_available', income, expenses, summary:{ turnover, allowableExpenses, profitBeforeAdjustments:round(turnover - allowableExpenses), capitalAllowanceCandidates:round(expenses.filter((r) => r.type === 'capital_allowance_candidate').reduce((s, r) => s + Number(r.amount || 0), 0)) } };
+}
+
 function dashboard() {
   const tb = trialBalance();
   return {
@@ -146,7 +154,7 @@ function categoryFor(line) {
 }
 
 function bootstrap() {
-  return { entity:{ id:'cli_klop', name:'KLOP PROPERTIES LTD' }, accounts, vatCodes, salesInvoices, purchaseBills, bankLines, journals:ledger(), manualJournals:journals, dashboard:dashboard(), vatFeed:vatFeed(), plaid:plaidReadiness(), plaidItems, statementImports, categorisationRules };
+  return { entity:{ id:'cli_klop', name:'KLOP PROPERTIES LTD' }, accounts, vatCodes, salesInvoices, purchaseBills, bankLines, journals:ledger(), manualJournals:journals, dashboard:dashboard(), vatFeed:vatFeed(), digitalRecords: digitalRecordsForTax(), plaid:plaidReadiness(), plaidItems, statementImports, categorisationRules };
 }
 
 function pageHtml() {
@@ -159,6 +167,7 @@ let S={}, active='Dashboard';const fmt=n=>'GBP '+Number(n||0).toLocaleString('en
 router.get('/bookkeeping-workspace', (_req, res) => res.type('html').send(pageHtml()));
 router.get('/api/bookkeeping-production/bootstrap', (_req, res) => res.json(bootstrap()));
 router.get('/api/bookkeeping-production/vat-feed', (_req, res) => res.json(vatFeed()));
+router.get('/api/bookkeeping-production/digital-records/tax', (_req, res) => res.json(digitalRecordsForTax()));
 router.get('/api/bookkeeping-production/trial-balance', (_req, res) => res.json(trialBalance()));
 router.get('/api/bookkeeping-production/journals', (_req, res) => res.json(ledger()));
 router.get('/api/bookkeeping-production/bank-feeds/plaid/readiness', (_req, res) => res.json(plaidReadiness()));
@@ -222,4 +231,4 @@ router.post('/api/bookkeeping-production/bank/reconcile', (_req, res) => {
   res.json({ bankLines, dashboard:dashboard() });
 });
 
-module.exports = { bookkeepingProductionRouter: router, bookkeepingVatFeed: vatFeed };
+module.exports = { bookkeepingProductionRouter: router, bookkeepingVatFeed: vatFeed, bookkeepingDigitalRecordsForTax: digitalRecordsForTax };
